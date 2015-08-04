@@ -6,13 +6,16 @@ Added feature of named event.
 This allow multiple producer, productin same object type for different event name.
 As well as the subscriber will be able to subscribe event based on the name. 
 
-The ultimate conclusion of this changes is now you can use simple object like String or boolean with different name
+The ultimate conclusion of this changes is now you can use simple object like String or boolean with different name.
+
+Added feature of priority, this will enabled subscriber to run in specified sequence.
+Inspired by https://codex.wordpress.org/Function_Reference/add_action
 
 ``` java
-@Subscriber(event = 'push_configuration');
+@Subscriber(event = 'push_configuration', priorty = 1);
 @Producer(event = 'push_configuration') producePushConfigChange();
 
-@Subscriber(event = 'wifi_only_download');
+@Subscriber(event = 'wifi_only_download', priority = 2);
 @Producer(event = 'wifi_only_download') produceWifiConfigChange();
 
 bus.post('push_configuration', true);
