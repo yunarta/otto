@@ -27,7 +27,7 @@ import java.lang.reflect.Method;
  *
  * @author Jake Wharton
  */
-class EventProducer {
+class EventProducer implements Comparable<EventProducer> {
 
   /** Object sporting the producer method. */
   final Object target;
@@ -38,7 +38,9 @@ class EventProducer {
   /** Should this producer produce events? */
   private boolean valid = true;
 
-  EventProducer(Object target, Method method) {
+  private int priority;
+
+  EventProducer(Object target, Method method, int priority) {
     if (target == null) {
       throw new NullPointerException("EventProducer target cannot be null.");
     }
@@ -46,6 +48,7 @@ class EventProducer {
       throw new NullPointerException("EventProducer method cannot be null.");
     }
 
+    this.priority = priority;
     this.target = target;
     this.method = method;
     method.setAccessible(true);
@@ -116,5 +119,11 @@ class EventProducer {
     final EventProducer other = (EventProducer) obj;
 
     return method.equals(other.method) && target == other.target;
+  }
+
+  @Override
+  public int compareTo(EventProducer o)
+  {
+    return Integer.compare(priority, o.priority);
   }
 }

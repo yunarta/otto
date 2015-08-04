@@ -25,10 +25,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 
 /**
@@ -209,7 +209,7 @@ public class Bus {
       }
       Set<EventHandler> handlers = handlersByType.get(type);
       if (handlers != null && !handlers.isEmpty()) {
-        for (EventHandler handler : handlers) {
+        for (EventHandler handler : handlers.toArray(new EventHandler[1])) {
           dispatchProducerResultToHandler(handler, producer);
         }
       }
@@ -221,7 +221,7 @@ public class Bus {
       Set<EventHandler> handlers = handlersByType.get(type);
       if (handlers == null) {
         //concurrent put if absent
-        Set<EventHandler> handlersCreation = new CopyOnWriteArraySet<EventHandler>();
+        Set<EventHandler> handlersCreation = new TreeSet<>();
         handlers = handlersByType.putIfAbsent(type, handlersCreation);
         if (handlers == null) {
             handlers = handlersCreation;
@@ -239,7 +239,7 @@ public class Bus {
       EventProducer producer = producersByType.get(type);
       if (producer != null && producer.isValid()) {
         Set<EventHandler> foundHandlers = entry.getValue();
-        for (EventHandler foundHandler : foundHandlers) {
+        for (EventHandler foundHandler : foundHandlers.toArray(new EventHandler[1])) {
           if (!producer.isValid()) {
             break;
           }
@@ -343,7 +343,7 @@ public class Bus {
 
       if (wrappers != null && !wrappers.isEmpty()) {
         dispatched = true;
-        for (EventHandler wrapper : wrappers) {
+        for (EventHandler wrapper : wrappers.toArray(new EventHandler[0])) {
           enqueueEvent(event, wrapper);
         }
       }
@@ -377,7 +377,7 @@ public class Bus {
 
     if (wrappers != null && !wrappers.isEmpty()) {
       dispatched = true;
-      for (EventHandler wrapper : wrappers) {
+      for (EventHandler wrapper : wrappers.toArray(new EventHandler[0])) {
         enqueueEvent(event, wrapper);
       }
     }

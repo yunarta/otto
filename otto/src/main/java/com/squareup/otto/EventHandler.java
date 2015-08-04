@@ -31,8 +31,8 @@ import java.lang.reflect.Method;
  *
  * @author Cliff Biffle
  */
-class EventHandler {
-
+class EventHandler implements Comparable<EventHandler> {
+  private final int priority;
   /** Object sporting the handler method. */
   private final Object target;
   /** Handler method. */
@@ -42,7 +42,7 @@ class EventHandler {
   /** Should this handler receive events? */
   private boolean valid = true;
 
-  EventHandler(Object target, Method method) {
+  EventHandler(Object target, Method method, int priority) {
     if (target == null) {
       throw new NullPointerException("EventHandler target cannot be null.");
     }
@@ -50,6 +50,7 @@ class EventHandler {
       throw new NullPointerException("EventHandler method cannot be null.");
     }
 
+    this.priority = priority;
     this.target = target;
     this.method = method;
     method.setAccessible(true);
@@ -123,4 +124,9 @@ class EventHandler {
     return method.equals(other.method) && target == other.target;
   }
 
+  @Override
+  public int compareTo(EventHandler o)
+  {
+    return Integer.compare(priority, o.priority);
+  }
 }

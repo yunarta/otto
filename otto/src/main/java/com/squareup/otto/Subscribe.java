@@ -41,4 +41,6 @@ public @interface Subscribe {
      * If its empty, the class type will be used instead.
      */
     String event() default "";
+
+    int priority() default Integer.MAX_VALUE;
 }

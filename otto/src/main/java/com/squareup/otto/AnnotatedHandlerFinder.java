@@ -35,23 +35,33 @@ import java.util.concurrent.ConcurrentMap;
  */
 final class AnnotatedHandlerFinder {
 
+  static class MethodInfo {
+    Method method;
+
+    int priority;
+
+    public MethodInfo(Method method, int priority) {
+      this.method = method;
+      this.priority = priority;
+    }
+  }
   /** Cache event bus producer methods for each class. */
-  private static final ConcurrentMap<Class<?>, Map<String, Method>> PRODUCERS_CACHE =
+  private static final ConcurrentMap<Class<?>, Map<String, MethodInfo>> PRODUCERS_CACHE =
           new ConcurrentHashMap<>();
 
   /** Cache event bus subscriber methods for each class. */
-  private static final ConcurrentMap<Class<?>, Map<String, Set<Method>>> SUBSCRIBERS_CACHE =
+  private static final ConcurrentMap<Class<?>, Map<String, Set<MethodInfo>>> SUBSCRIBERS_CACHE =
           new ConcurrentHashMap<>();
 
   private static void loadAnnotatedProducerMethods(Class<?> listenerClass,
-                                                   Map<String, Method> producerMethods) {
-    Map<String, Set<Method>> subscriberMethods = new HashMap<>();
+                                                   Map<String, MethodInfo> producerMethods) {
+    Map<String, Set<MethodInfo>> subscriberMethods = new HashMap<>();
     loadAnnotatedMethods(listenerClass, producerMethods, subscriberMethods);
   }
 
   private static void loadAnnotatedSubscriberMethods(Class<?> listenerClass,
-                                                     Map<String, Set<Method>> subscriberMethods) {
-    Map<String, Method> producerMethods = new HashMap<>();
+                                                     Map<String, Set<MethodInfo>> subscriberMethods) {
+    Map<String, MethodInfo> producerMethods = new HashMap<>();
     loadAnnotatedMethods(listenerClass, producerMethods, subscriberMethods);
   }
 
@@ -59,7 +69,7 @@ final class AnnotatedHandlerFinder {
    * Load all methods annotated with {@link Produce} or {@link Subscribe} into their respective caches for the
    * specified class.
    */
-  private static void loadAnnotatedMethods(Class<?> listenerClass, Map<String, Method> producerMethods, Map<String, Set<Method>> subscriberMethods) {
+  private static void loadAnnotatedMethods(Class<?> listenerClass, Map<String, MethodInfo> producerMethods, Map<String, Set<MethodInfo>> subscriberMethods) {
     for (Method method : listenerClass.getDeclaredMethods()) {
       // The compiler sometimes creates synthetic bridge methods as part of the
       // type erasure process. As of JDK8 these methods now include the same
@@ -92,12 +102,12 @@ final class AnnotatedHandlerFinder {
           keyName = eventType.getName();
         }
 
-        Set<Method> methods = subscriberMethods.get(keyName);
+        Set<MethodInfo> methods = subscriberMethods.get(keyName);
         if (methods == null) {
-          methods = new HashSet<Method>();
+          methods = new HashSet<>();
           subscriberMethods.put(keyName, methods);
         }
-        methods.add(method);
+        methods.add(new MethodInfo(method, annotation.priority()));
       } else if (method.isAnnotationPresent(Produce.class)) {
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (parameterTypes.length != 0) {
@@ -132,7 +142,7 @@ final class AnnotatedHandlerFinder {
         if ("".equals(keyName)) {
           keyName = eventType.getName();
         }
-        producerMethods.put(keyName, method);
+        producerMethods.put(keyName, new MethodInfo(method, annotation.priority()));
       }
     }
 
@@ -145,14 +155,15 @@ final class AnnotatedHandlerFinder {
     final Class<?> listenerClass = listener.getClass();
     Map<String, EventProducer> handlersInMethod = new HashMap<>();
 
-    Map<String, Method> methods = PRODUCERS_CACHE.get(listenerClass);
+    Map<String, MethodInfo> methods = PRODUCERS_CACHE.get(listenerClass);
     if (null == methods) {
       methods = new HashMap<>();
       loadAnnotatedProducerMethods(listenerClass, methods);
     }
     if (!methods.isEmpty()) {
-      for (Map.Entry<String, Method> e : methods.entrySet()) {
-        EventProducer producer = new EventProducer(listener, e.getValue());
+      for (Map.Entry<String, MethodInfo> e : methods.entrySet()) {
+        MethodInfo info = e.getValue();
+        EventProducer producer = new EventProducer(listener, info.method, info.priority);
         handlersInMethod.put(e.getKey(), producer);
       }
     }
@@ -165,16 +176,16 @@ final class AnnotatedHandlerFinder {
     Class<?> listenerClass = listener.getClass();
     Map<String, Set<EventHandler>> handlersInMethod = new HashMap<>();
 
-    Map<String, Set<Method>> methods = SUBSCRIBERS_CACHE.get(listenerClass);
+    Map<String, Set<MethodInfo>> methods = SUBSCRIBERS_CACHE.get(listenerClass);
     if (null == methods) {
       methods = new HashMap<>();
       loadAnnotatedSubscriberMethods(listenerClass, methods);
     }
     if (!methods.isEmpty()) {
-      for (Map.Entry<String, Set<Method>> e : methods.entrySet()) {
+      for (Map.Entry<String, Set<MethodInfo>> e : methods.entrySet()) {
         Set<EventHandler> handlers = new HashSet<EventHandler>();
-        for (Method m : e.getValue()) {
-          handlers.add(new EventHandler(listener, m));
+        for (MethodInfo m : e.getValue()) {
+          handlers.add(new EventHandler(listener, m.method, m.priority));
         }
         handlersInMethod.put(e.getKey(), handlers);
       }
