@@ -7,8 +7,12 @@ sourceSets {
     main {
         java.srcDirs = ['src/main/java']
     }
+
+    test {
+        java.srcDirs = []
+    }
 }
 
 dependencies {
-    compile 'junit:junit:4.12'
+    testCompile 'junit:junit:4.12'
 }
